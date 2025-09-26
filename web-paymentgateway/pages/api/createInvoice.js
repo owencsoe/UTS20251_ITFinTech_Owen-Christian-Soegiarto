@@ -1,4 +1,6 @@
 import { Xendit } from "xendit-node";
+import connectDB from "../../lib/mongodb";  // FIX path
+import Order from "../../models/order";     // FIX path
 
 const x = new Xendit({
   secretKey: "xnd_development_BrNmc7AafQxmhv3PvO64fXpIQRTZzrPGB9KiYcaIJsHqGnr68kw3xmzuAnfqNJ",
@@ -6,11 +8,23 @@ const x = new Xendit({
 
 export default async function handler(req, res) {
   if (req.method === "POST") {
-    const { amount, description } = req.body;
+    const { amount, description, items } = req.body;
 
     try {
+      await connectDB();
+
+      const externalId = "order-" + Date.now();
+
+      // Simpan order
+      await Order.create({
+        externalId,
+        items: items || [],
+        total: Number(amount),
+        status: "PENDING",
+      });
+
       const payload = {
-        externalId: "order-" + Date.now(),
+        externalId,
         amount: Number(amount),
         description: description || "Pembayaran UTS",
         payerEmail: "test@example.com",
@@ -18,16 +32,11 @@ export default async function handler(req, res) {
         failureRedirectUrl: "http://localhost:3000/payment-failed",
       };
 
-      console.log("Payload ke Xendit v7:", payload);
-
       const response = await x.Invoice.createInvoice({ data: payload });
 
-      console.log("Response dari Xendit:", response);
-
-      // pastikan selalu return JSON valid
       res.status(200).json(response.data || response);
     } catch (err) {
-      console.error("❌ Error create invoice:", err.response?.data || err);
+      console.error("❌ Error create invoice:", err.response?.data || err.message || err);
       res.status(500).json({ error: "Gagal membuat invoice" });
     }
   } else {

@@ -22,7 +22,7 @@ export default function Home({ products }) {
       <ul>
         {products.map((p) => (
           <li key={p._id}>
-            {p.name} - Rp{p.price}
+            {p.name} - Rp{p.price.toLocaleString("id-ID")}
             <button
               onClick={() => addToCart(p)}
               style={{ marginLeft: "10px" }}
@@ -36,18 +36,22 @@ export default function Home({ products }) {
       <h2>Cart</h2>
       <ul>
         {cart.map((c, i) => (
-          <li key={i}>{c.name} - Rp{c.price}</li>
+          <li key={i}>
+            {c.name} - Rp{c.price.toLocaleString("id-ID")}
+          </li>
         ))}
       </ul>
 
-      <Link
-        href={{
-          pathname: "/checkout",
-          query: { cart: JSON.stringify(cart) },
-        }}
-      >
-        Pergi ke Checkout
-      </Link>
+      {cart.length > 0 && (
+        <Link
+          href={{
+            pathname: "/checkout",
+            query: { cart: JSON.stringify(cart) },
+          }}
+        >
+          Pergi ke Checkout
+        </Link>
+      )}
     </div>
   );
 }
