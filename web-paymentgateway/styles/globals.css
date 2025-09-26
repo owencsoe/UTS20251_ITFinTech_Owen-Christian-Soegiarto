@@ -1,33 +1,15 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
+/* ========== Base Reset & Layout ========== */
 * {
   box-sizing: border-box;
-  padding: 0;
   margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  background: #f5f7fa;
+  color: #333;
+  line-height: 1.6;
 }
 
 a {
@@ -35,8 +17,164 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+/* ========== Page Container & Card ========== */
+.page-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 40px 16px;
+  background: #f5f7fa;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 900px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.empty-text {
+  text-align: center;
+  color: #6b7280;
+  padding: 20px;
+  font-size: 16px;
+}
+
+/* ========== Buttons ========== */
+.btn {
+  display: block;
+  width: 100%;
+  padding: 14px 20px;
+  margin-top: 20px;
+  border-radius: 10px;
+  background: linear-gradient(to right, #16a34a, #15803d);
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  text-align: center;
+}
+.btn:hover {
+  background: linear-gradient(to right, #22c55e, #16a34a);
+}
+.btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Error message */
+.error {
+  color: #dc2626;
+  text-align: center;
+  margin-top: 12px;
+  font-weight: 500;
+}
+
+/* ========== Checkout (Cart Items) ========== */
+.cart-item {
+  padding: 16px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  background: #fafafa;
+  margin-bottom: 12px;
+  transition: background 0.2s ease;
+}
+.cart-item:hover {
+  background: #f3f4f6;
+}
+
+.cart-item h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.cart-item .price {
+  color: #16a34a;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+/* Total Harga */
+.cart-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 20px;
+  font-weight: bold;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 2px solid #eee;
+}
+.cart-total span:last-child {
+  color: #16a34a;
+}
+
+/* ========== Orders Table ========== */
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.orders-table th,
+.orders-table td {
+  padding: 14px 18px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+  font-size: 15px;
+}
+
+.orders-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.orders-table tr:hover {
+  background: #f3f4f6;
+}
+
+.item-line {
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: #374151;
+}
+
+/* ========== Status Badges ========== */
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.paid {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-badge.pending {
+  background: #fef9c3;
+  color: #b45309;
+}
+
+.status-badge.expired {
+  background: #fee2e2;
+  color: #b91c1c;
 }

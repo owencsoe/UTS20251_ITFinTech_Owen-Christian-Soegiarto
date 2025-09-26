@@ -1,51 +1,83 @@
-// pages/orders.js
+import { useState } from "react";
 import connectDB from "../lib/mongodb";
-import Order from "../models/order";
+import Product from "../models/product";
+import Link from "next/link";
 
 export async function getServerSideProps() {
   await connectDB();
-  const orders = await Order.find().sort({ createdAt: -1 }).lean();
-  return { props: { orders: JSON.parse(JSON.stringify(orders)) } };
+  const products = await Product.find().lean();
+  return { props: { products: JSON.parse(JSON.stringify(products)) } };
 }
 
-export default function Orders({ orders }) {
-  return (
-    <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
-      <h1>Riwayat Transaksi</h1>
+export default function Home({ products }) {
+  const [cart, setCart] = useState([]);
 
-      {orders.length === 0 ? (
-        <p>Belum ada transaksi.</p>
-      ) : (
-        <table border="1" cellPadding="8" style={{ borderCollapse: "collapse", marginTop: "20px", width: "100%" }}>
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Items</th>
-              <th>Total</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((o) => (
-              <tr key={o._id}>
-                <td>{o.externalId}</td>
-                <td>
-                  {o.items && o.items.map((i, idx) => (
-                    <div key={idx}>{i.name} - Rp {i.price.toLocaleString("id-ID")}</div>
-                  ))}
-                </td>
-                <td><strong>Rp {o.total.toLocaleString("id-ID")}</strong></td>
-                <td style={{
-                  color: o.status === "PAID" ? "green" : o.status === "EXPIRED" ? "red" : "orange",
-                  fontWeight: "bold"
-                }}>
-                  {o.status}
-                </td>
-              </tr>
+  const addToCart = (product) => {
+    setCart([...cart, product]);
+  };
+
+  const totalPrice = cart.reduce((sum, item) => sum + item.price, 0);
+
+  return (
+    <div className="page-container">
+      <div className="card">
+        {/* Judul */}
+        <h1 className="page-title">Pilih Produk</h1>
+
+        {/* List Produk */}
+        {products.length === 0 ? (
+          <p className="empty-text">Tidak ada produk tersedia.</p>
+        ) : (
+          <div>
+            {products.map((p) => (
+              <div key={p._id} className="cart-item">
+                <h2>{p.name}</h2>
+                <p className="price">Rp {p.price.toLocaleString("id-ID")}</p>
+                <button
+                  className="btn"
+                  style={{ marginTop: "10px" }}
+                  onClick={() => addToCart(p)}
+                >
+                  Tambah ke Cart
+                </button>
+              </div>
             ))}
-          </tbody>
-        </table>
-      )}
+          </div>
+        )}
+
+        {/* Cart */}
+        <h2 className="page-title" style={{ fontSize: "22px", marginTop: "30px" }}>
+          Keranjang
+        </h2>
+        {cart.length === 0 ? (
+          <p className="empty-text">Keranjang masih kosong.</p>
+        ) : (
+          <>
+            {cart.map((c, i) => (
+              <div key={i} className="cart-item">
+                <h2>{c.name}</h2>
+                <p className="price">Rp {c.price.toLocaleString("id-ID")}</p>
+              </div>
+            ))}
+
+            <div className="cart-total">
+              <span>Total:</span>
+              <span>Rp {totalPrice.toLocaleString("id-ID")}</span>
+            </div>
+
+            {/* Tombol ke checkout */}
+            <Link
+              className="btn"
+              href={{
+                pathname: "/checkout",
+                query: { cart: JSON.stringify(cart) },
+              }}
+            >
+              Pergi ke Checkout
+            </Link>
+          </>
+        )}
+      </div>
     </div>
   );
 }
