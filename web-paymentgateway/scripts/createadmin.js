@@ -1,64 +1,109 @@
-// Script untuk membuat admin pertama
-// Jalankan dengan: node scripts/createAdmin.js
-
-require('dotenv').config({path:'.env.local'});
+// Script untuk setup admin - jalankan dengan: node scripts/setupAdmin.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// Ambil dari .env
-const MONGODB_URI = process.env.MONGODB_URI;
+// SESUAIKAN dengan MongoDB URI Anda
+const MONGODB_URI = 'mongodb+srv://owen:owen1@cluster0.rhrercu.mongodb.net/paymentgateway?retryWrites=true&w=majority&appName=Cluster0';
 
-if (!MONGODB_URI) {
-  console.error('❌ Error: MONGODB_URI tidak ditemukan di file .env');
-  process.exit(1);
-}
+// Schema User (pastikan sama dengan model di aplikasi)
+const UserSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true, lowercase: true },
+  phone: { type: String, required: true },
+  password: { type: String, required: true },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  isVerified: { type: Boolean, default: false },
+  otp: String,
+  otpExpiry: Date,
+}, { timestamps: true });
 
-const AdminSchema = new mongoose.Schema({
-  name: String,
-  email: String,
-  password: String,
-  role: String,
-  createdAt: { type: Date, default: Date.now },
-});
+const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
-const Admin = mongoose.models.Admin || mongoose.model('Admin', AdminSchema);
-
-async function createAdmin() {
+async function setupAdmin() {
   try {
+    console.log('🔌 Connecting to MongoDB...');
     await mongoose.connect(MONGODB_URI);
-    console.log('✅ Connected to MongoDB');
+    console.log('✅ Connected to MongoDB\n');
 
-    const adminData = {
-      name: 'Admin PHAMIE',
-      email: 'admin@phamie.com',
-      password: 'admin123',
-      role: 'admin',
-    };
+    // Data admin
+    const adminEmail = 'admin@phamie.com';
+    const adminPassword = 'admin123';
+    const adminPhone = '6281807973333'; // Sesuaikan dengan nomor WA yang valid
 
-    const salt = await bcrypt.genSalt(10);
-    adminData.password = await bcrypt.hash(adminData.password, salt);
+    // Cek apakah admin sudah ada
+    console.log('🔍 Checking existing admin...');
+    const existingAdmin = await User.findOne({ email: adminEmail });
 
-    const existingAdmin = await Admin.findOne({ email: adminData.email });
     if (existingAdmin) {
-      console.log('⚠️  Admin dengan email ini sudah ada!');
-      console.log('Email:', adminData.email);
-      process.exit(0);
+      console.log('⚠️  Admin sudah ada di database!');
+      console.log('📧 Email:', existingAdmin.email);
+      console.log('👤 Role:', existingAdmin.role);
+      console.log('📱 Phone:', existingAdmin.phone);
+      console.log('✓ Verified:', existingAdmin.isVerified);
+      
+      console.log('\n🔄 Updating admin password dan data...');
+      
+      // Hash password baru
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+      
+      // Update admin
+      existingAdmin.password = hashedPassword;
+      existingAdmin.role = 'admin';
+      existingAdmin.isVerified = true; // Pastikan verified
+      existingAdmin.phone = adminPhone;
+      existingAdmin.otp = undefined;
+      existingAdmin.otpExpiry = undefined;
+      
+      await existingAdmin.save();
+      console.log('✅ Admin berhasil diupdate!');
+      
+    } else {
+      console.log('📝 Creating new admin...');
+      
+      // Hash password
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+      
+      // Buat admin baru
+      const admin = await User.create({
+        name: 'Admin',
+        email: adminEmail,
+        phone: adminPhone,
+        password: hashedPassword,
+        role: 'admin',
+        isVerified: true, // Admin langsung verified
+      });
+
+      console.log('✅ Admin berhasil dibuat!');
+      console.log('📧 Email:', admin.email);
+      console.log('👤 Role:', admin.role);
+      console.log('📱 Phone:', admin.phone);
     }
 
-    await Admin.create(adminData);
-    console.log('✅ Admin berhasil dibuat!');
-    console.log('========================');
-    console.log('Email:', 'admin@phamie.com');
-    console.log('Password:', 'admin123');
-    console.log('========================');
-    console.log('⚠️  PENTING: Segera ganti password setelah login pertama!');
+    console.log('\n' + '='.repeat(50));
+    console.log('📝 KREDENSIAL LOGIN ADMIN:');
+    console.log('='.repeat(50));
+    console.log('Email:', adminEmail);
+    console.log('Password:', adminPassword);
+    console.log('='.repeat(50));
+    
+    console.log('\n💡 Tips:');
+    console.log('1. Gunakan kredensial di atas untuk login');
+    console.log('2. Login di halaman yang sama dengan user biasa');
+    console.log('3. Setelah login, Anda akan auto-redirect ke dashboard admin');
+    
+    // Test login
+    console.log('\n🧪 Testing password verification...');
+    const testAdmin = await User.findOne({ email: adminEmail });
+    const isPasswordValid = await bcrypt.compare(adminPassword, testAdmin.password);
+    console.log('Password verification:', isPasswordValid ? '✅ VALID' : '❌ INVALID');
 
-    await mongoose.connection.close();
-    process.exit(0);
   } catch (error) {
     console.error('❌ Error:', error.message);
-    process.exit(1);
+    console.error('Stack:', error.stack);
+  } finally {
+    await mongoose.disconnect();
+    console.log('\n🔌 Disconnected from MongoDB');
   }
 }
 
-createAdmin();
+setupAdmin();

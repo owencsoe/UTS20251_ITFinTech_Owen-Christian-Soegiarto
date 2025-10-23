@@ -227,7 +227,7 @@ export default function AdminDashboard() {
   const handleLogout = () => {
     sessionStorage.removeItem('adminToken');
     sessionStorage.removeItem('adminName');
-    router.push('/admin/login');
+    router.push('/');
   };
 
   if (loading) {

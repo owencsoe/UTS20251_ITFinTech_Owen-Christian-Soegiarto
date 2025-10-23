@@ -1,71 +1,75 @@
-import connectDB from '../../../lib/mongodb';
-import Order from '../../../models/order';
+import connectDB from "../../../lib/mongodb";
+import Order from "../../../models/order";
 
 export default async function handler(req, res) {
-  await connectDB();
-
+  await connectDB(); // pastikan koneksi MongoDB siap
   const { id } = req.query;
 
-  if (req.method === 'GET') {
-    try {
-      const order = await Order.findById(id).populate('items.productId');
-      
-      if (!order) {
-        return res.status(404).json({ success: false, message: 'Order tidak ditemukan' });
+  try {
+    switch (req.method) {
+      // -------------------- GET ORDER BY ID --------------------
+      case "GET": {
+        const order = await Order.findById(id).populate("items.productId");
+        if (!order) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Order tidak ditemukan" });
+        }
+
+        return res.status(200).json({ success: true, order });
       }
 
-      res.status(200).json({ success: true, order });
-    } catch (error) {
-      console.error('Get order error:', error);
-      res.status(500).json({ success: false, message: 'Gagal mengambil data order' });
-    }
-  } 
-  else if (req.method === 'PUT') {
-    try {
-      const { status, paymentProof } = req.body;
+      // -------------------- UPDATE ORDER --------------------
+      case "PUT": {
+        const { status, paymentProof } = req.body;
 
-      const updateData = {};
-      if (status) updateData.status = status;
-      if (paymentProof) updateData.paymentProof = paymentProof;
+        const updateData = {};
+        if (status) updateData.status = status;
+        if (paymentProof) updateData.paymentProof = paymentProof;
+        updateData.updatedAt = Date.now();
 
-      const order = await Order.findByIdAndUpdate(
-        id,
-        { ...updateData, updatedAt: Date.now() },
-        { new: true }
-      );
+        const updatedOrder = await Order.findByIdAndUpdate(id, updateData, {
+          new: true,
+        });
 
-      if (!order) {
-        return res.status(404).json({ success: false, message: 'Order tidak ditemukan' });
+        if (!updatedOrder) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Order tidak ditemukan" });
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: "Order berhasil diupdate",
+          order: updatedOrder,
+        });
       }
 
-      res.status(200).json({ 
-        success: true, 
-        message: 'Order berhasil diupdate',
-        order 
-      });
-    } catch (error) {
-      console.error('Update order error:', error);
-      res.status(500).json({ success: false, message: 'Gagal mengupdate order' });
-    }
-  } 
-  else if (req.method === 'DELETE') {
-    try {
-      const order = await Order.findByIdAndDelete(id);
+      // -------------------- DELETE ORDER --------------------
+      case "DELETE": {
+        const deletedOrder = await Order.findByIdAndDelete(id);
+        if (!deletedOrder) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Order tidak ditemukan" });
+        }
 
-      if (!order) {
-        return res.status(404).json({ success: false, message: 'Order tidak ditemukan' });
+        return res.status(200).json({
+          success: true,
+          message: "Order berhasil dihapus",
+        });
       }
 
-      res.status(200).json({ 
-        success: true, 
-        message: 'Order berhasil dihapus' 
-      });
-    } catch (error) {
-      console.error('Delete order error:', error);
-      res.status(500).json({ success: false, message: 'Gagal menghapus order' });
+      // -------------------- METHOD NOT ALLOWED --------------------
+      default:
+        return res.status(405).json({ message: "Method not allowed" });
     }
-  } 
-  else {
-    res.status(405).json({ message: 'Method not allowed' });
+  } catch (error) {
+    console.error("Order API error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan pada server",
+      error: error.message,
+    });
   }
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import connectDB from "../lib/mongodb";
 import Product from "../models/product";
 import { useRouter } from "next/router";
@@ -18,7 +18,19 @@ export default function Home({ products }) {
   const [cart, setCart] = useState([]);
   const [showCartPopup, setShowCartPopup] = useState(false);
   const [justAdded, setJustAdded] = useState(null);
+  const [user, setUser] = useState(null);
   const router = useRouter();
+
+  // Check if user is logged in
+  useEffect(() => {
+    const token = localStorage.getItem('userToken');
+    const userName = localStorage.getItem('userName');
+    const userRole = localStorage.getItem('userRole');
+    
+    if (token && userName) {
+      setUser({ name: userName, role: userRole, token });
+    }
+  }, []);
 
   const addToCart = (product) => {
     const existingItem = cart.find((item) => item._id === product._id);
@@ -67,9 +79,32 @@ export default function Home({ products }) {
     return cart.reduce((total, item) => total + item.quantity, 0);
   };
 
+  // Logout function
+  const handleLogout = () => {
+    if (confirm('Yakin ingin logout?')) {
+      localStorage.removeItem('userToken');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userEmail');
+      setUser(null);
+      router.reload();
+    }
+  };
+
+  // handleCheckout dengan auth check
   const handleCheckout = () => {
     if (cart.length === 0) return;
+    
     localStorage.setItem("cart", JSON.stringify(cart));
+    
+    // Check if user logged in
+    if (!user) {
+      if (confirm('Anda perlu login untuk checkout. Login sekarang?')) {
+        router.push("/login");
+      }
+      return;
+    }
+    
     router.push("/checkout");
   };
 
@@ -137,6 +172,7 @@ export default function Home({ products }) {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 16px;
     }
 
     .logo-section {
@@ -176,6 +212,95 @@ export default function Home({ products }) {
       background-clip: text;
       margin: 0;
       letter-spacing: -0.5px;
+    }
+
+    /* Header Right Section */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: rgba(202, 138, 4, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.2);
+      border-radius: 12px;
+      opacity: 0;
+      transform: translateX(20px);
+      animation: slideInRight 0.8s ease-out 0.3s forwards;
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #ca8a04, #d97706);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .user-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .user-name {
+      color: #f9fafb;
+      font-weight: 600;
+      font-size: 14px;
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    .user-role {
+      color: #fbbf24;
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin: 0;
+      line-height: 1;
+    }
+
+    .auth-button {
+      padding: 10px 20px;
+      background: rgba(202, 138, 4, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.2);
+      color: #fbbf24;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translateX(20px);
+      animation: slideInRight 0.8s ease-out 0.35s forwards;
+    }
+
+    .auth-button:hover {
+      background: rgba(202, 138, 4, 0.2);
+      border-color: rgba(251, 191, 36, 0.4);
+      transform: scale(1.05);
+    }
+
+    .logout-button {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: #f87171;
+    }
+
+    .logout-button:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.4);
     }
 
     .cart-button {
@@ -735,6 +860,10 @@ export default function Home({ products }) {
         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
         gap: 24px;
       }
+      
+      .header-right {
+        gap: 10px;
+      }
     }
 
     @media (max-width: 768px) {
@@ -767,7 +896,72 @@ export default function Home({ products }) {
       }
 
       .logo-text {
-        font-size: 28px;
+        font-size: 24px;
+      }
+      
+      .logo-icon {
+        width: 44px;
+        height: 44px;
+        font-size: 24px;
+      }
+
+      .header-right {
+        gap: 8px;
+      }
+
+      .user-info {
+        padding: 8px 12px;
+      }
+      
+      .user-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+      }
+
+      .user-name {
+        font-size: 13px;
+      }
+      
+      .user-role {
+        font-size: 10px;
+      }
+
+      .auth-button {
+        padding: 8px 14px;
+        font-size: 13px;
+      }
+      
+      .cart-button {
+        padding: 12px;
+        font-size: 20px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .header-content {
+        gap: 8px;
+      }
+      
+      .logo-section {
+        gap: 8px;
+      }
+      
+      .logo-text {
+        font-size: 20px;
+      }
+      
+      .user-details {
+        display: none;
+      }
+      
+      .user-info {
+        padding: 8px;
+      }
+      
+      .auth-button {
+        padding: 8px 12px;
+        font-size: 12px;
       }
     }
 
@@ -864,22 +1058,57 @@ export default function Home({ products }) {
                 <h1 className="logo-text">PHAMIE</h1>
               </div>
             </div>
-            <button
-              onClick={() => setShowCartPopup(!showCartPopup)}
-              className="cart-button"
-            >
-              🛒
-              {getTotalItems() > 0 && (
-                <span className="cart-counter">
-                  {getTotalItems()}
-                </span>
+            
+            <div className="header-right">
+              {user ? (
+                <>
+                  <div className="user-info">
+                    <div className="user-avatar">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="user-details">
+                      <p className="user-name">{user.name}</p>
+                      <p className="user-role">{user.role}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="auth-button logout-button"
+                  >
+                    🚪 Logout
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => router.push("/login")}
+                  className="auth-button"
+                >
+                  🔐 Login
+                </button>
               )}
-            </button>
+              
+              <button
+                onClick={() => setShowCartPopup(!showCartPopup)}
+                className="cart-button"
+              >
+                🛒
+                {getTotalItems() > 0 && (
+                  <span className="cart-counter">
+                    {getTotalItems()}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
+        {/* Hero section */}
+        <div className="hero-section">
+          <h2 className="hero-title">Welcome to PHAMIE</h2>
           <p className="hero-subtitle">
+            Temukan produk terbaik dengan harga terjangkau
           </p>
+        </div>
 
         <div className="main-content">
           {/* Product Grid */}
