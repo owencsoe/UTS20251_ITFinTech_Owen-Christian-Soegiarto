@@ -681,13 +681,6 @@ export default function LoginPage() {
                   {loading ? '⏳ Memproses...' : mode === 'register' ? '🚀 Daftar' : '🔓 Login'}
                 </button>
 
-                <button 
-                  type="button"
-                  className="secondary-button"
-                  onClick={handleSkipLogin}
-                >
-                  Lanjut Tanpa Login
-                </button>
               </form>
             </>
           ) : (

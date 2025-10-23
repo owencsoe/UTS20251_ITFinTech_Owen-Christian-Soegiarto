@@ -1103,12 +1103,9 @@ export default function Home({ products }) {
         </div>
 
         {/* Hero section */}
-        <div className="hero-section">
-          <h2 className="hero-title">Welcome to PHAMIE</h2>
+
           <p className="hero-subtitle">
-            Temukan produk terbaik dengan harga terjangkau
           </p>
-        </div>
 
         <div className="main-content">
           {/* Product Grid */}
