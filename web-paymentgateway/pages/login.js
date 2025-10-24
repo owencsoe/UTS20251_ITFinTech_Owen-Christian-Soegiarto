@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [tempUserId, setTempUserId] = useState(null);
+  const [userRole, setUserRole] = useState(null);
 
   const handleSubmitCredentials = async (e) => {
     e.preventDefault();
@@ -60,13 +61,14 @@ export default function LoginPage() {
 
         if (response.ok) {
           setTempUserId(data.userId);
+          setUserRole(data.role || 'user');
           setSuccess(`Kode OTP telah dikirim ke WhatsApp ${formData.phone}`);
           setStep('otp');
         } else {
           setError(data.message || 'Registrasi gagal');
         }
       } else {
-        // Login
+        // Login - Semua user (termasuk admin) perlu OTP
         const response = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -79,27 +81,11 @@ export default function LoginPage() {
         const data = await response.json();
 
         if (response.ok) {
-          // Cek apakah admin (skip OTP)
-          // ...
-          // Cek apakah admin (skip OTP)
-          if (data.skipOTP && data.role === 'admin') {
-            // Admin langsung login tanpa OTP
-            sessionStorage.setItem('adminToken', data.token); // ✅ Fix: Menggunakan sessionStorage dan adminToken
-            sessionStorage.setItem('adminName', data.name);   // ✅ Fix: Menggunakan sessionStorage dan adminName
-            sessionStorage.setItem('userRole', data.role);    // Bisa tetap atau ganti ke adminRole
-            sessionStorage.setItem('userEmail', data.email);  // Bisa tetap
-            
-            setSuccess('Login admin berhasil! Mengalihkan...');
-            
-            setTimeout(() => {
-              window.location.href = '/admin/dashboard';
-            }, 1000);
-          } else {
-            // User biasa perlu OTP
-            setTempUserId(data.userId);
-            setSuccess(`Kode OTP telah dikirim ke WhatsApp ${data.phone}`);
-            setStep('otp');
-          }
+          // Simpan data sementara dan minta OTP
+          setTempUserId(data.userId);
+          setUserRole(data.role || 'user');
+          setSuccess(`Kode OTP telah dikirim ke WhatsApp ${data.phone}`);
+          setStep('otp');
         } else {
           setError(data.message || 'Login gagal');
         }
@@ -130,14 +116,27 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('userToken', data.token);
-        localStorage.setItem('userName', data.name);
-        localStorage.setItem('userRole', data.role);
-        
+        // Simpan token dan data user
         if (data.role === 'admin') {
-          window.location.href = '/admin/dashboard';
+          sessionStorage.setItem('adminToken', data.token);
+          sessionStorage.setItem('adminName', data.name);
+          sessionStorage.setItem('userRole', data.role);
+          sessionStorage.setItem('userEmail', data.email);
+          
+          setSuccess('Verifikasi berhasil! Mengalihkan ke dashboard admin...');
+          setTimeout(() => {
+            window.location.href = '/admin/dashboard';
+          }, 1000);
         } else {
-          window.location.href = '/';
+          localStorage.setItem('userToken', data.token);
+          localStorage.setItem('userName', data.name);
+          localStorage.setItem('userRole', data.role);
+          localStorage.setItem('userEmail', data.email);
+          
+          setSuccess('Verifikasi berhasil! Mengalihkan...');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1000);
         }
       } else {
         setError(data.message || 'Kode OTP tidak valid');
@@ -390,24 +389,6 @@ export default function LoginPage() {
           cursor: not-allowed;
         }
 
-        .secondary-button {
-          width: 100%;
-          padding: 14px;
-          background: rgba(75, 85, 99, 0.3);
-          color: #d1d5db;
-          font-weight: 600;
-          font-size: 14px;
-          border: 1px solid rgba(75, 85, 99, 0.5);
-          border-radius: 12px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .secondary-button:hover {
-          background: rgba(75, 85, 99, 0.5);
-          border-color: rgba(75, 85, 99, 0.7);
-        }
-
         .otp-container {
           text-align: center;
         }
@@ -510,16 +491,16 @@ export default function LoginPage() {
           margin: 0;
         }
 
-        .admin-hint {
-          background: rgba(168, 85, 247, 0.1);
-          border: 1px solid rgba(168, 85, 247, 0.3);
+        .security-badge {
+          background: rgba(34, 197, 94, 0.1);
+          border: 1px solid rgba(34, 197, 94, 0.3);
           border-radius: 12px;
           padding: 12px 16px;
           margin-bottom: 20px;
         }
 
-        .admin-hint p {
-          color: #c4b5fd;
+        .security-badge p {
+          color: #86efac;
           font-size: 13px;
           line-height: 1.5;
           margin: 0;
@@ -583,8 +564,8 @@ export default function LoginPage() {
               </div>
 
               {mode === 'login' && (
-                <div className="admin-hint">
-                  <p>👑 Admin akan langsung masuk tanpa OTP</p>
+                <div className="security-badge">
+                  <p>🔒 Semua login diverifikasi dengan OTP untuk keamanan maksimal</p>
                 </div>
               )}
 
@@ -680,7 +661,6 @@ export default function LoginPage() {
                 >
                   {loading ? '⏳ Memproses...' : mode === 'register' ? '🚀 Daftar' : '🔓 Login'}
                 </button>
-
               </form>
             </>
           ) : (

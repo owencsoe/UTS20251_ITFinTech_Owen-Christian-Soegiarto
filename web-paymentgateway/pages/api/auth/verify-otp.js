@@ -1,6 +1,7 @@
 import connectDB from '../../../lib/mongodb';
 import User from '../../../models/user';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,23 +12,38 @@ export default async function handler(req, res) {
     await connectDB();
 
     const { userId, otp } = req.body;
+    if (!userId || !otp) {
+      return res.status(400).json({ message: 'userId dan otp wajib diisi' });
+    }
 
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User tidak ditemukan' });
     }
 
+    // Pastikan user punya OTP aktif
+    if (!user.otp || !user.otpExpiry) {
+      return res.status(400).json({ message: 'Tidak ada OTP aktif, silakan login ulang' });
+    }
+
     // Cek OTP expired
-    if (new Date() > user.otpExpiry) {
-      return res.status(400).json({ message: 'Kode OTP sudah expired' });
+    const now = new Date();
+    if (now > user.otpExpiry) {
+      return res.status(400).json({ message: 'Kode OTP salah atau sudah kadaluarsa' });
     }
 
-    // Verify OTP
-    if (user.otp !== otp) {
-      return res.status(400).json({ message: 'Kode OTP tidak valid' });
+    // Jika OTP disimpan plaintext:
+    const isOtpValid = user.otp === otp;
+
+    // (Opsional keamanan ekstra: jika kamu nanti menyimpan OTP dalam bentuk hash)
+    // const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    // const isOtpValid = user.otp === otpHash;
+
+    if (!isOtpValid) {
+      return res.status(400).json({ message: 'Kode OTP salah atau sudah kadaluarsa' });
     }
 
-    // Update user verified
+    // Bersihkan OTP dan tandai verifikasi
     user.isVerified = true;
     user.otp = null;
     user.otpExpiry = null;
@@ -36,7 +52,7 @@ export default async function handler(req, res) {
     // Generate JWT
     const token = jwt.sign(
       { userId: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET, // 🚨 pastikan JWT_SECRET sudah diset di environment
       { expiresIn: '7d' }
     );
 
@@ -45,7 +61,7 @@ export default async function handler(req, res) {
       token,
       name: user.name,
       role: user.role,
-      message: 'Verifikasi berhasil'
+      message: `Verifikasi berhasil. Selamat datang, ${user.role === 'admin' ? 'Admin' : user.name}!`,
     });
 
   } catch (error) {

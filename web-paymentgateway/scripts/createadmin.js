@@ -1,4 +1,5 @@
-// Script untuk setup admin - jalankan dengan: node scripts/setupAdmin.js
+// scripts/setupAdmin.js
+// Jalankan dengan: node scripts/setupAdmin.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
@@ -25,10 +26,11 @@ async function setupAdmin() {
     await mongoose.connect(MONGODB_URI);
     console.log('✅ Connected to MongoDB\n');
 
-    // Data admin
+    // Data admin - SESUAIKAN DENGAN DATA ANDA
     const adminEmail = 'admin@phamie.com';
     const adminPassword = 'admin123';
-    const adminPhone = '6281807973333'; // Sesuaikan dengan nomor WA yang valid
+    const adminPhone = '6281807973333'; // ⚠️ PENTING: Nomor ini akan terima OTP!
+    const adminName = 'Admin Phamie';
 
     // Cek apakah admin sudah ada
     console.log('🔍 Checking existing admin...');
@@ -37,21 +39,23 @@ async function setupAdmin() {
     if (existingAdmin) {
       console.log('⚠️  Admin sudah ada di database!');
       console.log('📧 Email:', existingAdmin.email);
+      console.log('👤 Name:', existingAdmin.name);
       console.log('👤 Role:', existingAdmin.role);
       console.log('📱 Phone:', existingAdmin.phone);
       console.log('✓ Verified:', existingAdmin.isVerified);
       
-      console.log('\n🔄 Updating admin password dan data...');
+      console.log('\n🔄 Updating admin password, phone, dan role...');
       
       // Hash password baru
       const hashedPassword = await bcrypt.hash(adminPassword, 10);
       
       // Update admin
+      existingAdmin.name = adminName;
       existingAdmin.password = hashedPassword;
-      existingAdmin.role = 'admin';
+      existingAdmin.role = 'admin'; // Pastikan role admin
+      existingAdmin.phone = adminPhone; // Update phone
       existingAdmin.isVerified = true; // Pastikan verified
-      existingAdmin.phone = adminPhone;
-      existingAdmin.otp = undefined;
+      existingAdmin.otp = undefined; // Hapus OTP lama
       existingAdmin.otpExpiry = undefined;
       
       await existingAdmin.save();
@@ -65,7 +69,7 @@ async function setupAdmin() {
       
       // Buat admin baru
       const admin = await User.create({
-        name: 'Admin',
+        name: adminName,
         email: adminEmail,
         phone: adminPhone,
         password: hashedPassword,
@@ -75,31 +79,65 @@ async function setupAdmin() {
 
       console.log('✅ Admin berhasil dibuat!');
       console.log('📧 Email:', admin.email);
+      console.log('👤 Name:', admin.name);
       console.log('👤 Role:', admin.role);
       console.log('📱 Phone:', admin.phone);
     }
 
-    console.log('\n' + '='.repeat(50));
+    console.log('\n' + '='.repeat(60));
     console.log('📝 KREDENSIAL LOGIN ADMIN:');
-    console.log('='.repeat(50));
-    console.log('Email:', adminEmail);
-    console.log('Password:', adminPassword);
-    console.log('='.repeat(50));
+    console.log('='.repeat(60));
+    console.log('Email    :', adminEmail);
+    console.log('Password :', adminPassword);
+    console.log('WhatsApp :', adminPhone);
+    console.log('='.repeat(60));
     
-    console.log('\n💡 Tips:');
-    console.log('1. Gunakan kredensial di atas untuk login');
-    console.log('2. Login di halaman yang sama dengan user biasa');
-    console.log('3. Setelah login, Anda akan auto-redirect ke dashboard admin');
+    console.log('\n💡 Cara Login Admin:');
+    console.log('1. Buka halaman login (sama dengan user biasa)');
+    console.log('2. Klik tab "Login"');
+    console.log('3. Masukkan email:', adminEmail);
+    console.log('4. Masukkan password:', adminPassword);
+    console.log('5. Kode OTP akan dikirim ke WhatsApp:', adminPhone);
+    console.log('6. Masukkan kode OTP 6 digit');
+    console.log('7. Setelah verifikasi → auto-redirect ke /admin/dashboard');
     
-    // Test login
-    console.log('\n🧪 Testing password verification...');
+    // Test login credentials
+    console.log('\n🧪 Testing credentials...');
     const testAdmin = await User.findOne({ email: adminEmail });
     const isPasswordValid = await bcrypt.compare(adminPassword, testAdmin.password);
-    console.log('Password verification:', isPasswordValid ? '✅ VALID' : '❌ INVALID');
+    
+    console.log('✓ Email found      :', testAdmin ? '✅ YES' : '❌ NO');
+    console.log('✓ Password valid   :', isPasswordValid ? '✅ YES' : '❌ NO');
+    console.log('✓ Role is admin    :', testAdmin?.role === 'admin' ? '✅ YES' : '❌ NO');
+    console.log('✓ Phone exists     :', testAdmin?.phone ? `✅ ${testAdmin.phone}` : '❌ NO');
+    console.log('✓ Is verified      :', testAdmin?.isVerified ? '✅ YES' : '⚠️  NO');
+
+    // Tampilkan statistik
+    console.log('\n📊 Database Statistics:');
+    const totalUsers = await User.countDocuments();
+    const totalAdmins = await User.countDocuments({ role: 'admin' });
+    const totalRegularUsers = await User.countDocuments({ role: 'user' });
+    
+    console.log('Total Users      :', totalUsers);
+    console.log('Total Admins     :', totalAdmins);
+    console.log('Total Regular    :', totalRegularUsers);
+
+    console.log('\n⚠️  PENTING:');
+    console.log('- Pastikan nomor WhatsApp', adminPhone, 'aktif');
+    console.log('- OTP akan dikirim ke nomor tersebut saat login');
+    console.log('- Jika tidak menerima OTP, cek:');
+    console.log('  1. API WhatsApp gateway berfungsi');
+    console.log('  2. Nomor format benar (dimulai 62)');
+    console.log('  3. Check logs di API /api/auth/login');
 
   } catch (error) {
-    console.error('❌ Error:', error.message);
-    console.error('Stack:', error.stack);
+    console.error('\n❌ Error:', error.message);
+    if (error.code === 11000) {
+      console.error('💡 Duplicate key error. Email atau phone sudah terdaftar.');
+      console.error('   Coba ganti email atau phone number.');
+    } else {
+      console.error('Stack:', error.stack);
+    }
   } finally {
     await mongoose.disconnect();
     console.log('\n🔌 Disconnected from MongoDB');

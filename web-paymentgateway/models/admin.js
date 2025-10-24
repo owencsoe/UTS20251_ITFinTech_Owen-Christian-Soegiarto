@@ -11,6 +11,17 @@ const AdminSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  phone: {
+    type: String,
+    required: true,
+    unique: true,
+    validate: {
+      validator: function(v) {
+        return /^62\d{9,13}$/.test(v);
+      },
+      message: props => `${props.value} bukan format nomor WhatsApp yang valid! Harus diawali 62`
+    }
+  },
   password: {
     type: String,
     required: true,
@@ -18,6 +29,10 @@ const AdminSchema = new mongoose.Schema({
   role: {
     type: String,
     default: 'admin',
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
   },
   createdAt: {
     type: Date,
